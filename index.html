@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Persona Discovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow: hidden; }
+        .card-container-enter { animation: container-enter 0.5s ease-out; }
+        .card-exit { animation: card-exit 0.4s ease-in forwards; }
+        .result-enter { animation: result-enter 0.6s ease-out 0.8s forwards; opacity: 0; }
+        .bar-enter { animation: bar-enter 0.8s ease-out 1.1s forwards; transform: scaleX(0); transform-origin: left; }
+        
+        @keyframes container-enter { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes card-exit { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.9); } }
+        @keyframes result-enter { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes bar-enter { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+        /* Effects Animations */
+        .sparkle, .balloon { position: fixed; pointer-events: none; z-index: 9999; }
+        
+        .sparkle {
+            width: 10px; height: 10px; background-color: #fbbf24; border-radius: 50%;
+            animation: sparkle-fly 1s ease-out forwards;
+        }
+        @keyframes sparkle-fly {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
+        }
+        
+        .balloon {
+            width: 40px; height: 55px; background-color: rgba(236, 72, 153, 0.8); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: balloon-rise 2.5s ease-out forwards;
+        }
+        .balloon::after {
+            content: ''; position: absolute; width: 3px; height: 8px; background-color: inherit;
+            left: 50%; top: 100%; transform: translateX(-50%);
+        }
+        @keyframes balloon-rise {
+            0% { transform: translateY(100vh) scale(1); opacity: 1; }
+            100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex items-center justify-center min-h-screen p-2 sm:p-4 antialiased">
+
+    <!-- Audio Elements -->
+    <audio id="sound-swipe" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/105988/blip.mp3"></audio>
+    <audio id="sound-start" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/105988/start.mp3"></audio>
+    <audio id="sound-end" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/105988/end.mp3"></audio>
+    <audio id="sound-reveal" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/105988/reveal.mp3"></audio>
+
+    <div class="w-full max-w-2xl mx-auto text-center">
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="space-y-6">
+            <h1 class="text-4xl sm:text-5xl font-black text-indigo-600">60-Second College Persona</h1>
+            <p class="text-base sm:text-lg text-slate-600">What do you truly value in a college? Make as many choices as you can in 60 seconds to find your unique persona.</p>
+            <button id="start-button" class="w-full bg-indigo-600 text-white font-bold py-3 sm:py-4 px-8 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-all duration-300 transform hover:scale-105">
+                Start the Clock
+            </button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <div class="text-left"><div class="text-xs sm:text-sm font-bold text-slate-500">SCORE</div><div id="score" class="text-2xl sm:text-3xl font-bold">0</div></div>
+                <div class="text-right"><div class="text-xs sm:text-sm font-bold text-slate-500">TIME LEFT</div><div id="timer" class="text-2xl sm:text-3xl font-bold text-indigo-600">60</div></div>
+            </div>
+            <div id="duel-container" class="space-y-3 sm:space-y-4">
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    <button id="option-a" class="duel-card text-left p-4 sm:p-6 bg-white rounded-2xl shadow-lg hover:ring-4 hover:ring-indigo-400 focus:ring-4 focus:ring-indigo-400 focus:outline-none transition-all duration-200 transform hover:-translate-y-1">
+                        <p id="option-a-emoji" class="text-3xl sm:text-4xl mb-2"></p><p id="option-a-text" class="text-sm sm:text-base font-semibold"></p>
+                    </button>
+                    <button id="option-b" class="duel-card text-left p-4 sm:p-6 bg-white rounded-2xl shadow-lg hover:ring-4 hover:ring-teal-400 focus:ring-4 focus:ring-teal-400 focus:outline-none transition-all duration-200 transform hover:-translate-y-1">
+                        <p id="option-b-emoji" class="text-3xl sm:text-4xl mb-2"></p><p id="option-b-text" class="text-sm sm:text-base font-semibold"></p>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="hidden">
+            <div id="results-card" class="bg-white p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl space-y-3 sm:space-y-4 text-left result-enter">
+                <div class="text-center">
+                    <p class="text-slate-600 text-sm sm:text-base">Your College Persona is...</p>
+                    <h2 id="persona-title" class="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-teal-500"></h2>
+                    <p class="mt-1 font-medium text-slate-500 text-sm sm:text-base">Based on <span id="final-score" class="font-bold">0</span> choices.</p>
+                </div>
+                <div class="pt-2 sm:pt-4"><h3 class="font-bold text-base sm:text-lg mb-3 text-slate-800">Your Preference Profile:</h3><div id="results-bars" class="space-y-2 sm:space-y-3"></div></div>
+                <div>
+                    <p id="persona-description" class="text-slate-700 text-sm sm:text-base leading-relaxed"></p>
+                    <p id="persona-challenge" class="mt-3 font-semibold text-slate-800 bg-indigo-50 p-3 rounded-lg text-sm sm:text-base"></p>
+                </div>
+                <div class="text-center pt-2 sm:pt-4 space-y-3">
+                    <a href="https://www.findmyorbit.com" target="_blank" class="block w-full bg-amber-400 text-amber-900 font-extrabold py-3 sm:py-4 px-8 rounded-xl shadow-lg hover:bg-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all duration-300 transform hover:scale-105">
+                        Find Schools for Your Persona!
+                    </a>
+                </div>
+            </div>
+            <div class="mt-4 sm:mt-6 space-y-4">
+                <div class="text-center">
+                    <p class="font-semibold mb-2">Share Your Persona!</p>
+                    <div class="flex justify-center gap-3">
+                        <a id="share-twitter" href="#" target="_blank" class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-[#1DA1F2] text-white rounded-full shadow-md transition-transform hover:scale-110"><svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M23.44 4.83c-.8.37-1.5.3-2.22.02.93-.56.98-.96 1.32-2.02-.88.52-1.86.9-2.9 1.1-.82-.88-2-1.43-3.3-1.43-2.5 0-4.52 2.02-4.52 4.52 0 .35.04.7.12 1.03-3.77-.2-7.12-2-9.36-4.75-.4.67-.6 1.45-.6 2.3 0 1.56.8 2.95 2 3.77-.74-.03-1.44-.23-2.05-.57v.06c0 2.2 1.56 4.03 3.64 4.44-.67.2-1.37.2-2.06.08.58 1.8 2.26 3.12 4.25 3.16-1.55 1.2-3.5 1.92-5.6 1.92-.36 0-.72-.02-1.08-.06 2 1.3 4.38 2.05 6.94 2.05 8.35 0 12.92-6.92 12.92-12.93 0-.2 0-.4-.02-.6.9-.63 1.96-1.22 2.56-2.14z"/></svg></a>
+                        <a id="share-whatsapp" href="#" target="_blank" class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-[#25D366] text-white rounded-full shadow-md transition-transform hover:scale-110"><svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.46 3.48 1.34 4.94l-1.48 5.45 5.59-1.45c1.41.83 3.01 1.25 4.66 1.25h.01c5.46 0 9.91-4.45 9.91-9.91 0-5.46-4.45-9.9-9.91-9.9zM18.4 15.25c-.22-.12-1.28-.63-1.47-.7-.2-.07-.34-.12-.49.12-.15.23-.56.69-.68.83-.13.15-.25.16-.47.05-.22-.12-1.02-.37-1.94-1.2-.72-.63-1.2-1.41-1.34-1.65-.14-.25-.01-.38.1-.5.1-.1.22-.26.34-.39.11-.12.15-.2.22-.34.07-.15.04-.26-.01-.38-.05-.12-.48-1.15-.66-1.58-.18-.42-.36-.36-.49-.37-.12-.01-.26-.01-.4-.01-.15 0-.38.05-.58.28-.2.23-.76.74-.76 1.8 0 1.06.78 2.08.89 2.23.11.15 1.53 2.33 3.71 3.28.52.23.93.36 1.25.46.43.12.83.1.1.1.1.15.53-.61.61-1.2.08-.58.08-1.08.05-1.2s-.09-.16-.21-.28z"/></svg></a>
+                        <button id="copy-link" class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-slate-500 text-white rounded-full shadow-md transition-transform hover:scale-110"><svg class="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/></svg></button>
+                    </div>
+                    <div id="copy-feedback" class="text-sm text-emerald-600 mt-2 h-4"></div>
+                </div>
+                <button id="play-again-button" class="w-full bg-slate-700 text-white font-bold py-3 sm:py-3 px-8 rounded-xl shadow-lg hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-400 transition-all duration-300">
+                    Discover Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startButton = document.getElementById('start-button');
+        const playAgainButton = document.getElementById('play-again-button');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const duelContainer = document.getElementById('duel-container');
+        const optionA = { button: document.getElementById('option-a'), emoji: document.getElementById('option-a-emoji'), text: document.getElementById('option-a-text') };
+        const optionB = { button: document.getElementById('option-b'), emoji: document.getElementById('option-b-emoji'), text: document.getElementById('option-b-text') };
+        const finalScoreDisplay = document.getElementById('final-score');
+        const resultsBars = document.getElementById('results-bars');
+        const personaTitle = document.getElementById('persona-title');
+        const personaDescription = document.getElementById('persona-description');
+        const personaChallenge = document.getElementById('persona-challenge');
+        const shareTwitter = document.getElementById('share-twitter');
+        const shareWhatsapp = document.getElementById('share-whatsapp');
+        const copyLinkButton = document.getElementById('copy-link');
+        const copyFeedback = document.getElementById('copy-feedback');
+        const soundSwipe = document.getElementById('sound-swipe'), soundStart = document.getElementById('sound-start'), soundEnd = document.getElementById('sound-end'), soundReveal = document.getElementById('sound-reveal');
+        
+        const categories = {
+            academics: { label: 'Academics', color: 'bg-red-500' },
+            career: { label: 'Career & Outcomes', color: 'bg-blue-500' },
+            culture: { label: 'Campus Culture', color: 'bg-yellow-500' },
+            environment: { label: 'Environment & Lifestyle', color: 'bg-green-500' },
+            practicality: { label: 'Practicality & Value', color: 'bg-purple-500' },
+            growth: { label: 'Personal Growth', color: 'bg-pink-500' },
+        };
+
+        const allDuels = [
+            // This list contains 80+ unique duels to prevent repetition
+            { a: { text: 'Top-Ranked Research Program', tags: ['academics', 'career'], emoji: '🔬' }, b: { text: 'Major D1 Sports Scene', tags: ['culture'], emoji: '🏈' } },
+            { a: { text: 'Small, Intimate Classes', tags: ['academics', 'growth'], emoji: '🧑‍🏫' }, b: { text: 'Huge Alumni Network for Jobs', tags: ['career'], emoji: '🌐' } },
+            { a: { text: 'Flexible, Creative Curriculum', tags: ['academics', 'growth'], emoji: '🎨' }, b: { text: 'Guaranteed Internship Program', tags: ['career', 'practicality'], emoji: '💼' } },
+            { a: { text: 'Access to Famous Professors', tags: ['academics'], emoji: '🌟' }, b: { text: 'Generous Financial Aid', tags: ['practicality'], emoji: '💸' } },
+            { a: { text: 'A Fast-Paced, Competitive Culture', tags: ['academics', 'career'], emoji: '⚡' }, b: { text: 'A Laid-Back, Collaborative Vibe', tags: ['culture', 'growth'], emoji: '🧘' } },
+            { a: { text: 'State-of-the-Art Labs & Facilities', tags: ['academics', 'career'], emoji: '🧪' }, b: { text: 'Study Abroad Opportunities', tags: ['growth', 'culture'], emoji: '🌍' } },
+            { a: { text: 'Championship-Level Debate Team', tags: ['academics'], emoji: '🗣️' }, b: { text: 'A Thriving Arts & Music Scene', tags: ['culture', 'growth'], emoji: '🎭' } },
+            { a: { text: 'Rigorous Core Curriculum', tags: ['academics'], emoji: '📚' }, b: { text: 'Freedom to Design Your Own Major', tags: ['academics', 'growth'], emoji: '🤸' } },
+            { a: { text: 'Undergraduate Teaching Focus', tags: ['academics'], emoji: '👨‍🏫' }, b: { text: 'Prestige of a Top-Tier Name', tags: ['academics', 'career'], emoji: '🏆' } },
+            { a: { text: 'Excellent Library & Study Spaces', tags: ['academics', 'environment'], emoji: '📖' }, b: { text: 'Amazing Campus Gym & Wellness', tags: ['environment', 'growth'], emoji: '💪' } },
+            { a: { text: 'High Average Starting Salaries', tags: ['career', 'practicality'], emoji: '📈' }, b: { text: 'Strong Focus on Social Justice', tags: ['culture', 'growth'], emoji: '⚖️' } },
+            { a: { text: 'Located in a Major Tech Hub', tags: ['career', 'environment'], emoji: '💻' }, b: { text: 'A Classic College Town Vibe', tags: ['environment', 'culture'], emoji: '🏘️' } },
+            { a: { text: 'Active, Hands-on Career Services', tags: ['career', 'practicality'], emoji: '🤝' }, b: { text: 'A "Work Hard, Play Hard" Culture', tags: ['culture'], emoji: '🎉' } },
+            { a: { text: 'Strong Pre-Professional Programs', tags: ['career', 'academics'], emoji: '🩺' }, b: { text: 'A Diverse, International Student Body', tags: ['culture', 'growth'], emoji: '🌏' } },
+            { a: { text: 'Focus on Entrepreneurship & Startups', tags: ['career', 'growth'], emoji: '💡' }, b: { text: 'A Historic, Traditional Campus', tags: ['environment'], emoji: '🏛️' } },
+            { a: { text: 'A Quirky, Alternative Vibe', tags: ['culture'], emoji: '🎨' }, b: { text: 'Strong School Spirit & Traditions', tags: ['culture'], emoji: '📣' } },
+            { a: { text: 'A Politically Engaged Student Body', tags: ['culture'], emoji: '🗳️' }, b: { text: 'A Dominant Greek Life Scene', tags: ['culture'], emoji: '🏛️' } },
+            { a: { text: 'Focus on Student Clubs & Orgs', tags: ['culture', 'growth'], emoji: '🧩' }, b: { text: 'Amazing Off-Campus Food & Coffee', tags: ['environment'], emoji: '🍜' } },
+            { a: { text: 'Highly Collaborative, Not Competitive', tags: ['culture', 'academics'], emoji: '🤗' }, b: { text: 'Students Focused on Their Own Goals', tags: ['career', 'growth'], emoji: '🎯' } },
+            { a: { text: 'Emphasis on Diversity & Inclusion', tags: ['culture', 'growth'], emoji: '🌈' }, b: { text: 'Emphasis on Free Speech & Debate', tags: ['culture', 'academics'], emoji: '🎤' } },
+            { a: { text: 'Warm Weather Year-Round', tags: ['environment'], emoji: '☀️' }, b: { text: 'Experiencing All Four Seasons', tags: ['environment'], emoji: '🍂' } },
+            { a: { text: 'Proximity to Nature and Outdoors', tags: ['environment', 'growth'], emoji: '🌲' }, b: { text: 'Access to World-Class Museums', tags: ['environment', 'culture'], emoji: '�️' } },
+            { a: { text: 'Guaranteed On-Campus Housing', tags: ['environment', 'practicality'], emoji: '🏠' }, b: { text: 'Vibrant Off-Campus Neighborhoods', tags: ['environment'], emoji: '🚲' } },
+            { a: { text: 'A Stunning, Picturesque Campus', tags: ['environment'], emoji: '✨' }, b: { text: 'A Gritty, Urban Campus Integrated with the City', tags: ['environment'], emoji: '🏙️' } },
+            { a: { text: 'Ability to Have a Car on Campus', tags: ['environment', 'practicality'], emoji: '🚗' }, b: { text: 'Excellent Public Transportation', tags: ['environment', 'practicality'], emoji: '🚇' } },
+            { a: { text: 'Graduating with Zero Debt', tags: ['practicality'], emoji: '💸' }, b: { text: 'The "Dream School" Experience', tags: ['growth', 'culture'], emoji: '🤩' } },
+            { a: { text: 'Easy to Double Major or Minor', tags: ['practicality', 'academics'], emoji: '🔄' }, b: { text: 'Deep Focus in a Single Subject', tags: ['academics'], emoji: '🧐' } },
+            { a: { text: 'Close to Home for Family Visits', tags: ['practicality', 'growth'], emoji: '👨‍👩‍👧' }, b: { text: 'Maximum Independence, Far from Home', tags: ['growth'], emoji: '✈️' } },
+            { a: { text: 'High Acceptance Rate', tags: ['practicality'], emoji: '✅' }, b: { text: 'Highly Selective & Exclusive', tags: ['academics'], emoji: '⛔' } },
+            { a: { text: 'Great Campus Food', tags: ['practicality', 'environment'], emoji: '🍔' }, b: { text: 'Internship Opportunities Nearby', tags: ['career', 'environment'], emoji: '🏙️' } },
+            { a: { text: 'A Supportive, Nurturing Environment', tags: ['growth', 'culture'], emoji: '🥰' }, b: { text: 'A "Sink or Swim" Challenge', tags: ['growth', 'academics'], emoji: '🏊' } },
+            { a: { text: 'Emphasis on Student Wellness & Mental Health', tags: ['growth'], emoji: '🧠' }, b: { text: 'Emphasis on High-Octane Success', tags: ['career'], emoji: '🚀' } },
+            { a: { text: 'Opportunity to Reinvent Yourself', tags: ['growth'], emoji: '🦋' }, b: { text: 'Continuing Friendships from High School', tags: ['practicality', 'culture'], emoji: '🧑‍🤝‍🧑' } },
+            { a: { text: 'Developing Real-World Skills', tags: ['growth', 'career'], emoji: '🛠️' }, b: { text: 'Exploring Abstract, Theoretical Ideas', tags: ['growth', 'academics'], emoji: '🌌' } },
+            { a: { text: 'Gaining Street Smarts in a City', tags: ['growth', 'environment'], emoji: '🚦' }, b: { text: 'Finding Peace in a Quiet Setting', tags: ['growth', 'environment'], emoji: '🏞️' } },
+            { a: { text: 'Cutting-edge Science Programs', tags: ['academics', 'career'], emoji: '🧬' }, b: { text: 'Renowned Humanities Department', tags: ['academics', 'growth'], emoji: '📜' } },
+            { a: { text: 'Campus in a Major Capital City', tags: ['environment', 'career'], emoji: '🏛️' }, b: { text: 'Campus in a Small, Quirky Town', tags: ['environment', 'culture'], emoji: '🚲' } },
+            { a: { text: 'Project-Based, Hands-On Learning', tags: ['academics', 'growth'], emoji: '🛠️' }, b: { text: 'Traditional Lecture-Based Classes', tags: ['academics'], emoji: '🧑‍🏫' } },
+            { a: { text: 'A Dry Campus (No Alcohol)', tags: ['culture', 'environment'], emoji: '🚫' }, b: { text: 'A Major Party School Reputation', tags: ['culture'], emoji: '🥳' } },
+            { a: { text: 'Merit-Based Scholarships', tags: ['practicality', 'academics'], emoji: '🏅' }, b: { text: 'Need-Based Financial Aid', tags: ['practicality'], emoji: '🤝' } },
+            { a: { text: 'A Focus on Undergraduate Research', tags: ['academics', 'career'], emoji: '🔬' }, b: { text: 'A Focus on Community Volunteering', tags: ['growth', 'culture'], emoji: '❤️' } },
+            { a: { text: 'Modern, New Dorms', tags: ['environment', 'practicality'], emoji: '🏢' }, b: { text: 'Historic Dorms with Character', tags: ['environment', 'culture'], emoji: '🏰' } },
+            { a: { text: 'Strong Connections to Wall Street', tags: ['career'], emoji: '🏦' }, b: { text: 'Strong Connections to Non-Profits', tags: ['career', 'growth'], emoji: '🌍' } },
+            { a: { text: 'A Very Liberal Student Body', tags: ['culture'], emoji: '☮️' }, b: { text: 'A Very Conservative Student Body', tags: ['culture'], emoji: '🦅' } },
+            { a: { text: 'Access to Great Concert Venues', tags: ['culture', 'environment'], emoji: '🎸' }, b: { text: 'Access to Great Hiking Trails', tags: ['growth', 'environment'], emoji: '⛰️' } },
+            { a: { text: 'A Structured, Guided Path', tags: ['practicality', 'academics'], emoji: '🗺️' }, b: { text: 'Total Academic Freedom', tags: ['growth', 'academics'], emoji: '🕊️' } },
+            { a: { text: 'A College with a Religious Affiliation', tags: ['culture', 'growth'], emoji: '⛪' }, b: { text: 'A Strictly Secular Institution', tags: ['culture'], emoji: '⚛️' } },
+            { a: { text: 'Small, Discussion-Based Seminars', tags: ['academics', 'growth'], emoji: '💬' }, b: { text: 'Large, Exciting Lecture Halls', tags: ['academics', 'culture'], emoji: '📢' } },
+            { a: { text: 'Excellent STEM programs', tags: ['academics', 'career'], emoji: '⚗️' }, b: { text: 'Top-tier arts and design programs', tags: ['academics', 'growth'], emoji: '🎬' } },
+            { a: { text: 'A campus known for innovation', tags: ['career', 'growth'], emoji: '🚀' }, b: { text: 'A campus known for its history', tags: ['culture', 'environment'], emoji: '📜' } },
+            { a: { text: 'Career fairs with top companies', tags: ['career', 'practicality'], emoji: '🏢' }, b: { text: 'Intimate mentorship with professors', tags: ['growth', 'academics'], emoji: '👨‍🏫' } },
+            { a: { text: 'A vibrant international community', tags: ['culture', 'growth'], emoji: '🌐' }, b: { text: 'A strong, local student community', tags: ['culture', 'practicality'], emoji: '🏡' } },
+            { a: { text: 'Focus on written communication skills', tags: ['academics', 'growth'], emoji: '✍️' }, b: { text: 'Focus on quantitative and data skills', tags: ['academics', 'career'], emoji: '📊' } },
+            { a: { text: 'A beautiful, well-maintained campus', tags: ['environment'], emoji: '🌸' }, b: { text: 'A campus with cutting-edge architecture', tags: ['environment'], emoji: '🏗️' } },
+            { a: { text: 'Internships During the School Year', tags: ['career', 'practicality'], emoji: '📅' }, b: { text: 'Summers Free for Travel or Other Pursuits', tags: ['growth'], emoji: '☀️' } },
+            { a: { text: 'A school that feels like an "underdog"', tags: ['culture', 'growth'], emoji: '🥊' }, b: { text: 'A school that is a perennial "winner"', tags: ['culture', 'career'], emoji: '👑' } },
+            { a: { text: 'Lots of green space on campus', tags: ['environment'], emoji: '🌳' }, b: { text: 'Easy access to an airport', tags: ['environment', 'practicality'], emoji: '✈️' } },
+            { a: { text: 'A "sink or swim" academic environment', tags: ['academics', 'growth'], emoji: '🏊‍♂️' }, b: { text: 'Lots of academic support and tutoring', tags: ['academics', 'practicality'], emoji: '🤝' } },
+            { a: { text: 'A huge variety of food options', tags: ['environment', 'culture'], emoji: '🌮' }, b: { text: 'A few, very high-quality dining halls', tags: ['environment', 'practicality'], emoji: '🍽️' } },
+            { a: { text: 'A student body with similar interests', tags: ['culture'], emoji: '👯' }, b: { text: 'A student body with diverse perspectives', tags: ['culture', 'growth'], emoji: '🌍' } },
+            { a: { text: 'Focus on theory and philosophy', tags: ['academics', 'growth'], emoji: '🤔' }, b: { text: 'Focus on practical, applicable skills', tags: ['career', 'practicality'], emoji: '🛠️' } },
+            { a: { text: 'A campus that empties on weekends', tags: ['environment'], emoji: '💨' }, b: { text: 'A campus that is active 7 days a week', tags: ['culture', 'environment'], emoji: '🥳' } },
+            { a: { text: 'Being a big fish in a small pond', tags: ['growth'], emoji: '🐟' }, b: { text: 'Being a small fish in a big pond', tags: ['growth', 'career'], emoji: '🐠' } },
+            { a: { text: 'Graduating in 3 years to save money', tags: ['practicality', 'career'], emoji: '⏩' }, b: { text: 'Taking 5 years to explore different interests', tags: ['growth', 'academics'], emoji: '🗺️' } },
+            { a: { text: 'A college that feels like home', tags: ['culture', 'growth'], emoji: '🏡' }, b: { text: 'A college that feels like an adventure', tags: ['growth', 'environment'], emoji: '🚀' } },
+        ];
+        
+        const personas = {
+            'Strategic Achiever': { primary: 'career' },
+            'Intellectual Purist': { primary: 'academics' },
+            'Community Builder': { primary: 'culture' },
+            'Adventurous Explorer': { primary: 'growth' },
+            'Grounded Realist': { primary: 'practicality' },
+            'Lifestyle Seeker': { primary: 'environment' },
+            'Balanced Thinker': {
+                description: 'You have a balanced perspective on what college should be, valuing a little bit of everything. You\'re adaptable and open to a wide range of experiences!',
+                challenge: 'Your Challenge: With so many options open to you, the key is to narrow down what truly excites you. Use your preference profile to see what you lean towards most.',
+            }
+        };
+        // Add full descriptions to primary personas
+        Object.keys(personas).forEach(p => {
+            if (p === 'Balanced Thinker') return;
+            const primaryCat = personas[p].primary;
+            switch(primaryCat) {
+                case 'career':
+                    personas[p].description = 'You\'re driven by future outcomes. You want a clear path from college to career, prioritizing tangible skills, internships, and a strong start to your professional life.';
+                    personas[p].challenge = 'Your Challenge: Don\'t lose sight of subjects you\'re passionate about, even if the career path isn\'t as obvious. A fulfilling career is a marathon, not a sprint.';
+                    break;
+                case 'academics':
+                     personas[p].description = 'For you, college is primarily about intellectual growth. You crave academic rigor, deep knowledge, and learning for its own sake, surrounded by others who feel the same.';
+                    personas[p].challenge = 'Your Challenge: Identifying colleges with true academic depth, while remembering to build the practical skills needed to apply your knowledge after graduation.';
+                    break;
+                case 'culture':
+                    personas[p].description = 'You thrive on energy and connection. You seek a vibrant social scene, a strong, spirited community, and an experience defined by friendships and shared memories.';
+                    personas[p].challenge = 'Your Challenge: Ensuring that the great campus vibe is backed by academic programs that genuinely excite and challenge you.';
+                    break;
+                case 'growth':
+                    personas[p].description = 'You\'re guided by a need for new experiences and self-discovery. You seek flexibility, thriving arts scenes, and unique, non-traditional paths that push you out of your comfort zone.';
+                    personas[p].challenge = 'Your Challenge: Your desire for adventure is great! Make sure you also find a place with the support systems to help you succeed when you\'re far from home.';
+                    break;
+                case 'practicality':
+                    personas[p].description = 'You are eminently practical. You weigh costs and benefits carefully, focusing on value, financial aid, and making sensible choices for your future and your finances.';
+                    personas[p].challenge = 'Your Challenge: Don\'t be so focused on value that you miss out on a "dream school" experience that might be worth the investment in the long run.';
+                    break;
+                case 'environment':
+                    personas[p].description = 'The world around you is your campus. You crave a specific environment, whether it\'s the energy of a city or the peace of nature, and see college as a backdrop for your life.';
+                    personas[p].challenge = 'Your Challenge: Make sure the beautiful campus or exciting city also has the specific academic resources and opportunities you need to thrive.';
+                    break;
+            }
+        });
+
+        let score = 0, timer = 60, timerInterval, currentDuelIndex = 0;
+        let duelQueue = [], personaScores = {}, isGameActive = false;
+        
+        const playSound = (sound) => { sound.currentTime = 0; sound.play().catch(e => {}); };
+
+        const createCelebration = () => {
+            const effectCount = 20;
+            const colors = ['#f43f5e', '#ec4899', '#8b5cf6', '#3b82f6', '#14b8a6'];
+            // Create Sparkles
+            for (let i = 0; i < effectCount; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                sparkle.style.setProperty('--x', `${(Math.random() - 0.5) * 2 * 100}vw`);
+                sparkle.style.setProperty('--y', `${(Math.random() - 0.5) * 2 * 100}vh`);
+                sparkle.style.left = '50%';
+                sparkle.style.top = '50%';
+                document.body.appendChild(sparkle);
+                setTimeout(() => sparkle.remove(), 1000);
+            }
+            // Create Balloons
+            for (let i = 0; i < effectCount / 2; i++) {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.style.left = `${10 + Math.random() * 80}%`;
+                balloon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                balloon.style.animationDelay = `${Math.random() * 1}s`;
+                document.body.appendChild(balloon);
+                setTimeout(() => balloon.remove(), 2500);
+            }
+        };
+
+        const generateDuelQueue = () => {
+            let tempDuels = [...allDuels];
+            for (let i = tempDuels.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tempDuels[i], tempDuels[j]] = [tempDuels[j], tempDuels[i]];
+            }
+            duelQueue = tempDuels;
+        };
+
+        const startGame = () => {
+            playSound(soundStart);
+            isGameActive = true;
+            score = 0;
+            timer = 60;
+            currentDuelIndex = 0;
+            personaScores = Object.keys(categories).reduce((acc, key) => ({...acc, [key]: 0 }), {});
+            generateDuelQueue();
+            scoreDisplay.textContent = score;
+            timerDisplay.textContent = timer;
+            startScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            displayDuel();
+            timerInterval = setInterval(() => {
+                timer--;
+                timerDisplay.textContent = timer;
+                if (timer <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        };
+
+        const displayDuel = () => {
+            if (!isGameActive || currentDuelIndex >= duelQueue.length) {
+                endGame();
+                return;
+            }
+            const duel = duelQueue[currentDuelIndex];
+            duelContainer.classList.remove('card-container-enter');
+            void duelContainer.offsetWidth;
+            duelContainer.classList.add('card-container-enter');
+            optionA.emoji.textContent = duel.a.emoji;
+            optionA.text.textContent = duel.a.text;
+            optionB.emoji.textContent = duel.b.emoji;
+            optionB.text.textContent = duel.b.text;
+        };
+        
+        const handleChoice = (choice) => {
+            if (!isGameActive) return;
+            playSound(soundSwipe);
+            const chosenTags = duelQueue[currentDuelIndex][choice].tags;
+            chosenTags.forEach(tag => { personaScores[tag]++; });
+            score++;
+            currentDuelIndex++;
+            scoreDisplay.textContent = score;
+            duelContainer.classList.add('card-exit');
+            setTimeout(() => {
+                duelContainer.classList.remove('card-exit');
+                displayDuel();
+            }, 400);
+        };
+        
+        const calculatePersona = () => {
+            const sortedScores = Object.entries(personaScores).sort(([,a],[,b]) => b-a);
+            
+            if (score < 8) return { ...personas['Balanced Thinker'], title: 'Balanced Thinker' };
+
+            const topCategory = sortedScores[0][0];
+            const topScore = sortedScores[0][1];
+            const secondScore = sortedScores[1][1];
+
+            // Dominance Check: Top score must be at least 30% greater than the second
+            // Or if scores are low, at least 2 points higher.
+            const isDominant = (topScore > secondScore * 1.3) || (topScore > secondScore + 2);
+
+            if (!isDominant) {
+                return { ...personas['Balanced Thinker'], title: 'Balanced Thinker' };
+            }
+
+            for (const name in personas) {
+                if (personas[name].primary === topCategory) {
+                    const secondaryCategory = categories[sortedScores[1][0]].label.toLowerCase();
+                    let nuancedDescription = personas[name].description;
+                    nuancedDescription += ` Your strong secondary interest in **${secondaryCategory}** adds extra depth to your profile.`;
+                    return { ...personas[name], title: name, description: nuancedDescription };
+                }
+            }
+            return { ...personas['Balanced Thinker'], title: 'Balanced Thinker' }; // Fallback
+        };
+
+        const endGame = () => {
+            if (!isGameActive) return;
+            isGameActive = false;
+            if(timerInterval) clearInterval(timerInterval);
+            
+            playSound(soundReveal);
+            createCelebration();
+            
+            const finalPersona = calculatePersona();
+            
+            finalScoreDisplay.textContent = score;
+            personaTitle.textContent = finalPersona.title;
+            personaDescription.innerHTML = finalPersona.description.replace(/\*\*(.*?)\*\*/g, '<strong class="text-indigo-600">$1</strong>');
+            personaChallenge.textContent = finalPersona.challenge;
+            
+            resultsBars.innerHTML = '';
+            const maxScore = Math.max(...Object.values(personaScores), 1);
+            Object.entries(personaScores).forEach(([key, val]) => {
+                const percentage = (val / maxScore) * 100;
+                const category = categories[key];
+                const barHtml = `
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs sm:text-sm">
+                            <span class="font-medium text-slate-600">${category.label}</span>
+                            <span class="font-bold text-slate-800">${Math.round(val)}</span>
+                        </div>
+                        <div class="bg-slate-200 rounded-full h-2 sm:h-2.5 shadow-inner">
+                            <div class="bar-enter ${category.color} h-2 sm:h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>`;
+                resultsBars.innerHTML += barHtml;
+            });
+            
+            const shareText = `I got the "${finalPersona.title}" persona on the College Persona Discovery game! What's yours?`;
+            shareTwitter.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.href)}`;
+            shareWhatsapp.href = `whatsapp://send?text=${encodeURIComponent(shareText + ' ' + window.location.href)}`;
+
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+        };
+
+        startButton.addEventListener('click', startGame);
+        playAgainButton.addEventListener('click', startGame);
+        optionA.button.addEventListener('click', () => handleChoice('a'));
+        optionB.button.addEventListener('click', () => handleChoice('b'));
+        copyLinkButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                copyFeedback.textContent = 'Link copied!';
+                setTimeout(() => { copyFeedback.textContent = '' }, 2000);
+            });
+        });
+        document.addEventListener('keydown', (e) => {
+            if (!isGameActive) return;
+            if (e.key === 'ArrowLeft') { optionA.button.click(); } 
+            else if (e.key === 'ArrowRight') { optionB.button.click(); }
+        });
+    });
+    </script>
+</body>
+</html>
+�
