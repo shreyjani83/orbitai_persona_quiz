@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
         .card-container-enter { animation: container-enter 0.5s ease-out; }
         .card-exit { animation: card-exit 0.4s ease-in forwards; }
         .result-enter { animation: result-enter 0.6s ease-out 0.8s forwards; opacity: 0; }
@@ -46,7 +46,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 flex items-center justify-center min-h-screen p-2 sm:p-4 antialiased">
+<body class="bg-slate-100 text-slate-800 flex items-center justify-center min-h-screen p-2 sm:p-4 antialiased overflow-y-auto">
 
     <!-- Audio Elements -->
     <audio id="sound-swipe" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/105988/blip.mp3"></audio>
@@ -54,7 +54,7 @@
     <audio id="sound-end" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/105988/end.mp3"></audio>
     <audio id="sound-reveal" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/105988/reveal.mp3"></audio>
 
-    <div class="w-full max-w-2xl mx-auto text-center">
+    <div class="w-full max-w-2xl mx-auto text-center my-4 sm:my-8">
 
         <!-- Start Screen -->
         <div id="start-screen" class="space-y-6">
@@ -81,11 +81,9 @@
                     </button>
                 </div>
             </div>
-        </div>
-
-        <!-- End Screen -->
-        <div id="end-screen" class="hidden">
-            <div id="results-card" class="bg-white p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl space-y-3 sm:space-y-4 text-left result-enter">
+        </div>        <!-- End Screen -->
+        <div id="end-screen" class="hidden pb-8 sm:pb-4">
+            <div id="results-card" class="bg-white p-4 sm:p-6 md:p-8 rounded-2xl shadow-2xl space-y-3 sm:space-y-4 text-left result-enter mb-4 sm:mb-6">
                 <div class="text-center">
                     <p class="text-slate-600 text-sm sm:text-base">Your College Persona is...</p>
                     <h2 id="persona-title" class="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-teal-500"></h2>
@@ -99,10 +97,9 @@
                 <div class="text-center pt-2 sm:pt-4 space-y-3">
                     <a href="https://www.findmyorbit.com" target="_blank" class="block w-full bg-amber-400 text-amber-900 font-extrabold py-3 sm:py-4 px-8 rounded-xl shadow-lg hover:bg-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all duration-300 transform hover:scale-105">
                         Find Schools for Your Persona!
-                    </a>
-                </div>
+                    </a>                </div>
             </div>
-            <div class="mt-4 sm:mt-6 space-y-4">
+            <div class="space-y-4">
                 <div class="text-center">
                     <p class="font-semibold mb-2">Share Your Persona!</p>
                     <div class="flex justify-center gap-3">
@@ -265,7 +262,7 @@
             }
         });
 
-        let score = 0, timer = 60, timerInterval, currentDuelIndex = 0;
+        let score = 0, timer = 5, timerInterval, currentDuelIndex = 0;
         let duelQueue = [], personaScores = {}, isGameActive = false;
         
         const playSound = (sound) => { sound.currentTime = 0; sound.play().catch(e => {}); };
@@ -309,7 +306,7 @@
             playSound(soundStart);
             isGameActive = true;
             score = 0;
-            timer = 60;
+            timer = 5;
             currentDuelIndex = 0;
             personaScores = Object.keys(categories).reduce((acc, key) => ({...acc, [key]: 0 }), {});
             generateDuelQueue();
@@ -440,10 +437,8 @@
         document.addEventListener('keydown', (e) => {
             if (!isGameActive) return;
             if (e.key === 'ArrowLeft') { optionA.button.click(); } 
-            else if (e.key === 'ArrowRight') { optionB.button.click(); }
-        });
+            else if (e.key === 'ArrowRight') { optionB.button.click(); }        });
     });
     </script>
 </body>
 </html>
-�
