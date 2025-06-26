@@ -316,7 +316,7 @@
             }
         });
 
-        let score = 0, timer = 5, timerInterval, currentDuelIndex = 0;
+        let score = 0, timer = 60, timerInterval, currentDuelIndex = 0;
         let duelQueue = [], personaScores = {}, isGameActive = false;
         
         const playSound = (sound) => { sound.currentTime = 0; sound.play().catch(e => {}); };
@@ -360,7 +360,7 @@
             playSound(soundStart);
             isGameActive = true;
             score = 0;
-            timer = 5;
+            timer = 60;
             currentDuelIndex = 0;
             personaScores = Object.keys(categories).reduce((acc, key) => ({...acc, [key]: 0 }), {});
             generateDuelQueue();
