@@ -410,27 +410,36 @@
         };
         
         const calculatePersona = () => {
-            const sortedScores = Object.entries(personaScores).sort(([,a],[,b]) => b-a);
-            
-            if (score < 8) return { ...personas['Balanced Thinker'], title: 'Balanced Thinker' };
-
+            const sortedScores = Object.entries(personaScores).sort(([, a], [, b]) => b - a);
             const topCategory = sortedScores[0][0];
             const topScore = sortedScores[0][1];
             const secondScore = sortedScores[1][1];
-
-            // Dominance Check: Top score must be at least 30% greater than the second
-            // Or if scores are low, at least 2 points higher.
-            const isDominant = (topScore > secondScore * 1.3) || (topScore > secondScore + 2);
-
-            if (!isDominant) {
+            const totalScore = Object.values(personaScores).reduce((a, b) => a + b, 0);
+            
+            // If score is too low, fallback to Balanced Thinker
+            if (score < 5 || totalScore === 0) {
                 return { ...personas['Balanced Thinker'], title: 'Balanced Thinker' };
             }
-
+            
+            // Adjusted dominance threshold: now 15% more or 1 point more
+            const isDominant = (topScore >= secondScore * 1.15) || (topScore >= secondScore + 1);
+            
+            // If not dominant but still clearly top, assign that persona anyway
+            if (!isDominant) {
+                const probablePersona = Object.keys(personas).find(name => personas[name].primary === topCategory);
+                return {
+                    ...personas[probablePersona],
+                    title: probablePersona,
+                    description: `${personas[probablePersona].description} Your preferences are fairly balanced, but you show a slight tilt toward ${categories[topCategory].label.toLowerCase()}.`,
+                };
+            }
+            
+            // Standard dominant result
             for (const name in personas) {
                 if (personas[name].primary === topCategory) {
                     const secondaryCategory = categories[sortedScores[1][0]].label.toLowerCase();
                     let nuancedDescription = personas[name].description;
-                    nuancedDescription += ` Your strong secondary interest in **${secondaryCategory}** adds extra depth to your profile.`;
+                    nuancedDescription += ` Your strong secondary interest in <strong class="text-indigo-600">${secondaryCategory}</strong> adds extra depth to your profile.`;
                     return { ...personas[name], title: name, description: nuancedDescription };
                 }
             }
