@@ -471,12 +471,12 @@
             });
             
             // Create platform-specific share messages
-            const whatsappShareText = `🎓 I just took the Orbit College Persona Quiz and I'm "${finalPersona.title}"!\nTake the quiz and find your college persona — it's scarily accurate 👇\n👉 https://orbitai-persona-quiz.vercel.app\nBy OrbitAI – https://findmyorbit.com`;
+            const whatsappShareText = `🎓 I just took the Orbit College Persona Quiz and I'm "${finalPersona.title}"!\nTake the quiz and find your college persona — it's scarily accurate 👇\n👉 https://personagame.findmyorbit.com\nBy OrbitAI – https://findmyorbit.com`;
             
-            const generalShareText = `I'm "${finalPersona.title}" on the Orbit College Persona Quiz!\nWhat's your college persona?\n👉 https://orbitai-persona-quiz.vercel.app\nBuilt by @FindMyOrbit → https://findmyorbit.com\n#OrbitAI #CollegePersona #StudyAbroad`;
+            const generalShareText = `I'm "${finalPersona.title}" on the Orbit College Persona Quiz!\nWhat's your college persona?\n👉 https://personagame.findmyorbit.com\nBuilt by @FindMyOrbit → https://findmyorbit.com\n#OrbitAI #CollegePersona #StudyAbroad`;
             
             shareTwitter.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(generalShareText)}`;
-            shareLinkedin.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://orbitai-persona-quiz.vercel.app')}&text=${encodeURIComponent(generalShareText)}`;            // Set up Facebook sharing with better handling
+            shareLinkedin.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://personagame.findmyorbit.com')}&text=${encodeURIComponent(generalShareText)}`;            // Set up Facebook sharing with better handling
             shareFacebook.onclick = (e) => {
                 e.preventDefault();
                 const currentUrl = window.location.href;
@@ -494,7 +494,7 @@
                     });
                 } else {
                     // For web URLs, use the basic sharer
-                    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://orbitai-persona-quiz.vercel.app')}`;
+                    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://personagame.findmyorbit.com')}`;
                     window.open(fbUrl, '_blank');
                 }
             };
